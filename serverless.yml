@@ -1,0 +1,88 @@
+service: sls-api
+
+frameworkVersion: '2'
+
+custom:
+  settings:
+    POSTS_TABLE: posts
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  environment: ${self:custom.settings}
+  region: 'us-east-1'
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action: 
+        - dynamodb:DescribeTable
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - "arn:aws:dynamodb:${self:provider.region}:*:/table/${self:custom.settings.POSTS_TABLE}"
+
+
+functions:
+# /posts
+  getAllPosts: # get all posts in database
+    handler: handler.getAllPosts
+    events:
+      - http:
+          path: /posts
+          method: GET
+          cors: true
+  getPosts: # search for a specific number of posts
+    handler: handler.getPosts
+    events:
+      - http:
+          path: /posts/{limit}
+          method: GET
+          cors: true
+# /post
+  getPostById: # search one post by id 
+    handler: handler.getPostById
+    events:
+      - http:
+          path: /post/{postId}
+          method: GET
+          cors: true
+  createPost: # create new post
+    handler: handler.createPost
+    events:
+      - http:
+          path: /post
+          method: POST
+          cors: true
+  updatePost: # update one post
+    handler: handler.updatePost
+    events:
+      - http:
+          path: /post/{postId}
+          method: PUT
+          cors: true
+  deletePost: # delete one post
+    handler: handler.deletePost
+    events:
+      - http:
+          path: /post/{postId}
+          method: DELETE
+          cors: true
+      
+resources:
+  Resources:
+    PostsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "id"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "id"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.settings.POSTS_TABLE}
+
